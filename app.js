@@ -26,6 +26,7 @@ app.use(function (req, res, next) {
   return res.render('error500');
 });
 
+// TODO: Add websocket server
 app.listen(port, () => {
   console.log(`Server started on ${port}`);
 });
