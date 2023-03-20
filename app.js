@@ -11,6 +11,9 @@ app.get('/', (req, res) => {
   res.render('index');
 });
 
+// The routes
+app.use('/', [require('./routes/data_route')]);
+
 // 404 error handler
 app.use(function (req, res, next) {
   console.log('404', req.url);
