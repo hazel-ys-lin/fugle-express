@@ -4,11 +4,9 @@ const app = express();
 const port = process.env.PORT;
 
 app.use(express.json());
-app.set('view engine', 'pug');
-app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.render('index');
+  res.status(200).json({ message: 'This is index' });
 });
 
 // The routes
@@ -17,13 +15,13 @@ app.use('/', [require('./routes/data_route')]);
 // 404 error handler
 app.use(function (req, res, next) {
   console.log('404', req.url);
-  return res.render('error404');
+  return res.status(400).json({ message: 'Page not found' });
 });
 
 // 500 error handler
 app.use(function (req, res, next) {
   console.log('error handler: ', err);
-  return res.render('error500');
+  return res.status(500).json({ message: 'Server Error' });
 });
 
 // TODO: Add websocket server
