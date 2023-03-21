@@ -26,5 +26,5 @@ app.use(function (req, res, next) {
 
 // TODO: Add websocket server
 app.listen(port, () => {
-  console.log(`Server started on ${port}`);
+  console.log(`Server started on port ${port}`);
 });
