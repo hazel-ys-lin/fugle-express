@@ -1,7 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const app = express();
-const port = process.env.PORT;
+const httpServer = require('http').createServer(app);
+// const port = process.env.PORT;
 
 app.use(express.json());
 
@@ -14,7 +15,7 @@ app.use('/', [require('./routes/data_route')]);
 
 // 404 error handler
 app.use(function (req, res, next) {
-  console.log('404', req.url);
+  // console.log('404', req.url);
   return res.status(400).json({ message: 'Page not found' });
 });
 
@@ -24,7 +25,8 @@ app.use(function (req, res, next) {
   return res.status(500).json({ message: 'Server Error' });
 });
 
-// TODO: Add websocket server
-app.listen(port, () => {
-  console.log(`Server started on port ${port}`);
-});
+// app.listen(port, () => {
+//   console.log(`Server started on port ${port}`);
+// });
+
+module.exports = { httpServer };

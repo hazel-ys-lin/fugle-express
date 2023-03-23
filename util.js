@@ -16,7 +16,7 @@ const slidingWindowCounter = async function (req, res, next) {
   let userId = req.query.id;
 
   let now = moment().valueOf();
-  console.log('[Rate Limiter] Sliding Window Counter Triggered', now);
+  // console.log('[Rate Limiter] Sliding Window Counter Triggered', now);
   let ipThreshold = 10;
   let idThreshold = 5;
   let windowSize = 60;
@@ -86,9 +86,9 @@ const slidingWindowCounter = async function (req, res, next) {
       if (err) {
         console.log('[Rate Limiter] Lua Script Error');
       }
-      console.log('[Rate Limiter] result: ', result);
+      // console.log('[Rate Limiter] result: ', result);
       if (result[0] === 0 && result[1] === 0) {
-        console.log('[Rate Limiter] 1 request');
+        // console.log('[Rate Limiter] 1 request');
         return next();
       }
       console.log('[Rate Limiter] Too many requests');
