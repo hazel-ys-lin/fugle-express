@@ -10,7 +10,7 @@ const wss = new WebSocket.Server({ noServer: true });
 
 const bitstampWs = new WebSocket('wss://ws.bitstamp.net');
 
-const currencyPairs = [
+const pairs = [
   'btcusd',
   'btceur',
   'btcgbp',
@@ -22,53 +22,76 @@ const currencyPairs = [
   'xrpeur',
   'xrpbtc',
 ];
-const latestPrices = {};
+const ohlcData = {};
+
+pairs.forEach((pair) => {
+  ohlcData[pair] = {
+    open: 0,
+    high: 0,
+    low: 0,
+    close: 0,
+    lastUpdated: 0,
+  };
+});
+
+function updateOHLC(pair, price) {
+  const now = Date.now();
+  const currentMinute = Math.floor(now / 60000);
+
+  if (ohlcData[pair].lastUpdated < currentMinute) {
+    ohlcData[pair] = {
+      open: price,
+      high: price,
+      low: price,
+      close: price,
+      lastUpdated: currentMinute,
+    };
+  } else {
+    if (price > ohlcData[pair].high) {
+      ohlcData[pair].high = price;
+    }
+    if (price < ohlcData[pair].low) {
+      ohlcData[pair].low = price;
+    }
+    ohlcData[pair].close = price;
+  }
+}
 
 bitstampWs.on('open', () => {
   console.log('[Bitstamp] Connected to WebSocket API');
 
-  // Subscribe to the "live_trades" channel for each currency pair
-  for (const currencyPair of currencyPairs) {
+  // Subscribe to the "live_trades_btcusd" channel for each currency pair
+  pairs.forEach((pair) => {
     const subscribeMsg = {
       event: 'bts:subscribe',
       data: {
-        channel: `live_trades_${currencyPair}`,
+        channel: `live_trades_${pair}`,
       },
     };
     bitstampWs.send(JSON.stringify(subscribeMsg));
-  }
+  });
 });
 
 bitstampWs.on('message', (data) => {
   const msg = JSON.parse(data);
-  const currencyPair = msg.channel.replace('live_trades_', '');
-  if (currencyPairs.includes(currencyPair)) {
-    console.log(`[Bitstamp] ${currencyPair.toUpperCase()}: ${msg.data.price}`);
-    // Save the latest deal price for the currency pair
-    latestPrices[currencyPair] = msg.data.price;
-    // Broadcast the latest deal price to all connected clients for the currency pair
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify({ currencyPair, price: msg.data.price }));
-      }
-    });
+  if (msg.channel && msg.channel.startsWith('live_trades_')) {
+    const pair = msg.channel.substring(12);
+    if (pairs.includes(pair)) {
+      const price = parseFloat(msg.data.price);
+      updateOHLC(pair, price);
+      const ohlc = ohlcData[pair];
+      wss.clients.forEach((client) => {
+        client.send(JSON.stringify({ pair, ohlc }));
+      });
+    }
   }
 });
 
-wss.on('connection', (ws) => {
-  console.log(`[Websocket] Client connected: ${ws._socket.remoteAddress}`);
-
-  // Emit the latest deal price for each currency pair to the client
-  for (const currencyPair of currencyPairs) {
-    if (latestPrices[currencyPair]) {
-      ws.send(
-        JSON.stringify({ currencyPair, price: latestPrices[currencyPair] })
-      );
-    }
-  }
-
-  ws.on('close', () => {
-    console.log(`[Websocket] Client disconnected: ${ws._socket.remoteAddress}`);
+wss.on('connection', (socket) => {
+  console.log(`[Websocket] Client connected: ${socket.id}`);
+  pairs.forEach((pair) => {
+    const ohlc = ohlcData[pair];
+    socket.send(JSON.stringify({ pair, ohlc }));
   });
 });
 
@@ -78,7 +101,7 @@ server.on('upgrade', (request, socket, head) => {
 
   if (pathname === '/streaming') {
     wss.handleUpgrade(request, socket, head, (socket) => {
-      wss.emit('connection', socket, request);
+      wss.emit('connection', socket);
     });
   } else {
     socket.destroy();
