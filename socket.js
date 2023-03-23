@@ -1,8 +1,6 @@
 // Websocket server
 require('dotenv').config();
-// const { httpServer } = require('./app');
-const http = require('http');
-const server = http.createServer();
+const { httpServer } = require('./app');
 const WebSocket = require('ws');
 const port = process.env.PORT;
 
@@ -94,20 +92,20 @@ wss.on('connection', (socket) => {
     socket.send(JSON.stringify({ pair, ohlc }));
   });
 });
-
-server.on('upgrade', (request, socket, head) => {
+httpServer.on('upgrade', (request, socket, head) => {
   const pathname = new URL(request.url, `http://${request.headers.host}`)
     .pathname;
 
-  if (pathname === '/streaming') {
-    wss.handleUpgrade(request, socket, head, (socket) => {
-      wss.emit('connection', socket);
-    });
-  } else {
+  if (pathname !== '/streaming') {
     socket.destroy();
+    return;
   }
+
+  wss.handleUpgrade(request, socket, head, (socket) => {
+    wss.emit('connection', socket, request);
+  });
 });
 
-server.listen(port, () => {
+httpServer.listen(port, () => {
   console.log(`[Websocket] Server started on port ${port}!`);
 });
